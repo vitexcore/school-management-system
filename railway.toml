@@ -1,0 +1,2 @@
+[deploy]
+startCommand = "cd server && npx prisma migrate deploy && node src/index.js"
