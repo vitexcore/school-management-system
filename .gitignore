@@ -33,3 +33,5 @@ yarn-error.log*
 tmp/
 temp/
 coverage/
+.vercel
+.env*

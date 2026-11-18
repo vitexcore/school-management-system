@@ -51,7 +51,6 @@ export default function App() {
           <Route path="students" element={<RequireAdmin><StudentsPage /></RequireAdmin>} />
           <Route path="students/create" element={<RequireAdmin><StudentCreatePage /></RequireAdmin>} />
           <Route path="students/:id" element={<RequireAdmin><StudentEditPage /></RequireAdmin>} />
-          <Route path="attendance" element={<RequireAdmin><AttendancePage /></RequireAdmin>} />
           <Route path="assessments" element={<RequireAdmin><AssessmentsPage /></RequireAdmin>} />
           <Route path="results" element={<RequireAdmin><ResultsPage /></RequireAdmin>} />
           <Route path="settings" element={<RequireAdmin><SettingsPage /></RequireAdmin>} />
