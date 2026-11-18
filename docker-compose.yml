@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-school_management}
+      POSTGRES_USER: ${POSTGRES_USER:-school}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-school} -d ${POSTGRES_DB:-school_management}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?set ACCESS_TOKEN_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?set REFRESH_TOKEN_SECRET}
+      CSRF_SECRET: ${CSRF_SECRET:?set CSRF_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://school.example.com}
+      COOKIE_SECURE: "true"
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
+      PAYSTACK_WEBHOOK_SECRET: ${PAYSTACK_WEBHOOK_SECRET:-}
+      SUBSCRIPTION_GRACE_DAYS: ${SUBSCRIPTION_GRACE_DAYS:-7}
+      BACKUP_DIR: ${BACKUP_DIR:-/var/backups/school-management}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      REPORT_EXPORT_DIR: ${REPORT_EXPORT_DIR:-/var/lib/school-management/exports}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backups:/var/backups/school-management
+      - ./report-exports:/var/lib/school-management/exports
+    command: ["sh", "-c", "npx prisma migrate deploy && node src/index.js"]
+
+  client:
+    build: ./client
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - server
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      BACKUP_DIR: /var/backups/school-management
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./backups:/var/backups/school-management
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["sh", "-c"]
+    command: ["while true; do stamp=$$(date -u +%Y%m%dT%H%M%SZ); pg_dump --format=custom --no-owner --no-acl \"$$DATABASE_URL\" > \"$$BACKUP_DIR/school-management-$$stamp.dump\"; find \"$$BACKUP_DIR\" -type f -name 'school-management-*.dump' -mtime +\"$$BACKUP_RETENTION_DAYS\" -delete; sleep 86400; done"]
+
+volumes:
+  postgres_data:

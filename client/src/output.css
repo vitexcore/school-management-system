@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@media print {
+  body { background: #fff !important; }
+  aside, button, form, input, select, textarea { display: none !important; }
+  main, article, table { break-inside: avoid; }
+  .overflow-auto, .overflow-x-auto { overflow: visible !important; }
+}
